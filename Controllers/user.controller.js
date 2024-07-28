@@ -1,15 +1,15 @@
 import User from "../Models/user.model.js";
 
-let cookieOption = {
+let cookieOptions = {
   httpOnly: true,
   secure: true,
   sameSite: "None",
 };
-
+//generate Token 
 async function generateToken(currUser) {
   return await currUser.generateToken();
 }
-
+//signup controller 
 let signup = async (req, res) => {
   let { email } = req.body;
 
@@ -29,12 +29,10 @@ let signup = async (req, res) => {
 
     let newUserData = await newUser.save();
 
-
-
     return res
       .status(201)
-      .cookie("AccessToken", accessToken, cookieOption)
-      .cookie("RefreshToken", refreshToken, cookieOption)
+      .cookie("AccessToken", accessToken, cookieOptions)
+      .cookie("RefreshToken", refreshToken, cookieOptions)
       .send({
         result: true,
         message: "User Created succesfully",
@@ -44,6 +42,8 @@ let signup = async (req, res) => {
     console.log({ result: false, message: err.message });
   }
 };
+
+//login controller 
 let login = async (req, res) => {
   let { email, password } = req.body;
   try {
@@ -66,15 +66,15 @@ let login = async (req, res) => {
         { new: true }
       );
 
-      console.log(updateUser);
+      // console.log(updateUser);
       return res
         .status(200)
-        .cookie("AccessToken", accessToken, cookieOption)
-        .cookie("RefreshToken", refreshToken, cookieOption)
+        .cookie("AccessToken", accessToken, cookieOptions)
+        .cookie("RefreshToken", refreshToken, cookieOptions)
         .send({
           result: true,
           message: "User Login sucessfully",
-          data: updatedUser
+          data: updatedUser,
         });
     } else {
       return res
@@ -86,10 +86,45 @@ let login = async (req, res) => {
   }
 };
 
-let getUser = (req, res) => {};
-let updateUser = (req, res) => {};
-let logout = (req, res) => {};
+// Get User
+let getUser = (req, res) => {
+  if (!req.user) {
+    return res.status(401).send({ result: false, message: "User not authenticated" });
+  }
+  try {
+    return res.status(200).send({ result: true, message: "Success", data: req.user });
+  } catch (err) {
+    return res.status(500).send({ result: false, message: err.message });
+  }
+};
 
-export {signup , login , updateUser , logout , getUser}
+// Update User
+let updateUser = async (req, res) => {
+  if (!req.user) {
+    return res.status(401).send({ result: false, message: "User not authenticated" });
+  }
+  try {
+    let updatedUser = await User.findByIdAndUpdate(req.user._id, req.body, { new: true });
+    return res.status(200).send({ result: true, message: "User updated successfully", data: updatedUser });
+  } catch (err) {
+    return res.status(500).send({ result: false, message: err.message });
+  }
+};
+
+// Logout User
+let logout = async (req, res) => {
+  if (!req.user) {
+    return res.status(401).send({ result: false, message: "User not authenticated" });
+  }
+  try {
+    await User.findByIdAndUpdate(req.user._id, { refreshToken: "" });
+    res.clearCookie("AccessToken", cookieOptions);
+    res.clearCookie("RefreshToken", cookieOptions);
+    return res.status(200).send({ result: true, message: "Logout successful" });
+  } catch (err) {
+    return res.status(500).send({ result: false, message: err.message });
+  }
+};
+export { signup, login, updateUser, logout, getUser };
 
 // signup login getuser updateuser logout

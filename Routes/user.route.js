@@ -1,4 +1,5 @@
 import express from "express";
+import auth from "../Middelwares/auth.middelware.js";
 import {
   signup,
   login,
@@ -11,8 +12,11 @@ let Router = express.Router();
 Router
   .post("/signup", signup)
   .post("/login", login)
-  .get("/", getUser)
-  .patch("/update", updateUser)
-  .post("/logout", logout);
+  .get("/",auth, getUser)
+  .patch("/update",auth, updateUser)
+  .post("/logout",auth,  logout);
 
   export default Router;    
+
+
+  //Update profile picture 
