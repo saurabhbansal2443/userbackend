@@ -1,4 +1,5 @@
 import User from "../Models/user.model.js";
+import uploadOnCloudinary from "../Utility/Cloudinary.js";
 
 let cookieOptions = {
   httpOnly: true,
@@ -104,7 +105,15 @@ let updateUser = async (req, res) => {
     return res.status(401).send({ result: false, message: "User not authenticated" });
   }
   try {
-    let updatedUser = await User.findByIdAndUpdate(req.user._id, req.body, { new: true });
+    
+    let {password, ...rest } =  req.body ;
+
+    if(password ){
+      req.user.password = password ;
+      await req.user.save();
+    }
+    let updatedUser = await User.findByIdAndUpdate(req.user._id, rest , { new: true });
+  
     return res.status(200).send({ result: true, message: "User updated successfully", data: updatedUser });
   } catch (err) {
     return res.status(500).send({ result: false, message: err.message });
@@ -117,6 +126,7 @@ let logout = async (req, res) => {
     return res.status(401).send({ result: false, message: "User not authenticated" });
   }
   try {
+    
     await User.findByIdAndUpdate(req.user._id, { refreshToken: "" });
     res.clearCookie("AccessToken", cookieOptions);
     res.clearCookie("RefreshToken", cookieOptions);
@@ -125,6 +135,28 @@ let logout = async (req, res) => {
     return res.status(500).send({ result: false, message: err.message });
   }
 };
-export { signup, login, updateUser, logout, getUser };
+
+let uplaodPhoto = async (req,res)=>{
+  if (!req.user) {
+    return res.status(401).send({ result: false, message: "User not authenticated" });
+  }
+  try{
+    // console.log("Reached to controller ")
+    
+
+    let photDetails = await uploadOnCloudinary(req.file.path);
+    let photUrl = photDetails.url;  
+    
+    let updatedUser = await User.findByIdAndUpdate(req.user._id , {profilePicture : photUrl} , {new : true })
+    
+    return res.send({ result: true, message: "Photo Uploaded Successfully ", data : updatedUser})
+
+
+  }catch (err) {
+    return res.status(500).send({ result: false, message: err.message });
+  }
+}
+
+export { signup, login, updateUser, logout, getUser , uplaodPhoto };
 
 // signup login getuser updateuser logout
